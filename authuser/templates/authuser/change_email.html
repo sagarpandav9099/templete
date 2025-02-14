@@ -1,0 +1,409 @@
+<!-- authuser/templates/authuser/change_email.html -->
+{% extends "authuser/dashboard_base.html" %}
+
+{% load static %}
+
+{% block title %}{% endblock title %}
+
+{% block extra_head %}
+<style>
+    input[disabled],
+    button[disabled],
+    textarea[disabled],
+    select[disabled] {
+        opacity: 0.6;
+        pointer-events: none;
+        cursor: not-allowed;
+    }
+
+    /* Additional styling for Resend OTP links */
+    .resend-otp {
+        cursor: pointer;
+        color: #0d6efd;
+        text-decoration: underline;
+        font-size: 0.9rem;
+    }
+
+    .resend-otp:hover {
+        color: #0a58ca;
+    }
+
+    /* Positioning spinner within Resend OTP */
+    .resend-otp .spinner {
+        margin-left: 5px;
+    }
+</style>
+{% endblock extra_head %}
+
+{% block dashboard_content %}
+<div class="col-lg-9">
+    <div class="rbt-dashboard-content bg-color-white rbt-shadow-box">
+        <div class="content">
+
+            <div class="section-title">
+                <h4 class="rbt-title-style-3">Change Email</h4>
+            </div>
+            <div id="alertBox"></div>
+            <div class="tab-content">
+                <!-- Start Profile Row -->
+                <form id="updateEmailForm" class="rbt-profile-row rbt-default-form row row--15" novalidate>
+                    <div id="step1">
+                        <div class="col-12">
+                            <div class="rbt-form-group">
+                                <label for="new_email" class="form-label">New Email *</label>
+                                <input type="email" class="form-control" id="new_email" required>
+                                <div class="validation-error" id="newEmailError"></div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="google_recaptcha_v3_token" value="">
+
+                        <div class="col-12 mt--10">
+                            <div class="form-submit-group">
+                                <button type="submit" class="rbt-btn btn-md btn-gradient hover-icon-reverse w-100">
+                                    <span id="sendOtpButtonText">Send OTP</span>
+                                    <i class="fa-solid fa-spinner fa-spin d-none" id="sendOtpSpinner"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- STEP 2: OTP Verification -->
+                    <div id="step2" class="d-none mt-4">
+                        <div class="rbt-form-group mb-3">
+                            <label for="verify_email_otp" class="form-label">
+                                Email OTP *
+                                <span class="resend-otp" id="resendEmailOtp">
+                                    Resend OTP
+                                    <i class="fa-solid fa-spinner fa-spin d-none spinner" id="resendEmailSpinner"></i>
+                                </span>
+                            </label>
+                            <input type="text" class="form-control" id="verify_email_otp" required>
+                            <div class="validation-error text-danger" id="emailOtpError"></div>
+                        </div>
+
+
+
+                        <div class="form-submit-group mt-3 d-flex justify-content-between">
+                            <button type="button" class="rbt-btn btn-md btn-secondary hover-icon-reverse"
+                                id="cancelRegistrationButton">
+                                Cancel
+                            </button>
+                            <button type="button" class="rbt-btn btn-md btn-gradient hover-icon-reverse"
+                                id="verifyOtpButton">
+                                <span id="verifyButtonText">Verify</span>
+                                <i class="fa-solid fa-spinner fa-spin d-none" id="verifySpinner"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <!-- /STEP 2 -->
+                </form>
+                <!-- End Profile Row -->
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock dashboard_content %}
+
+{% block extra_script %}
+<script>
+    // Initialize Bootstrap Toast
+     const toastEl = document.getElementById('toastMessage');
+     const toast = new bootstrap.Toast(toastEl);
+
+     // Show Toast Function
+     function showToast(message, type = 'info') {
+         let iconClass = 'fa-circle-info';
+         let bgClass = 'bg-primary';
+         let textClass = '';
+
+         if (type === 'success') {
+             iconClass = 'fa-circle-check';
+             bgClass = 'bg-success';
+             textClass = 'text-white';
+         } else if (type === 'error') {
+             iconClass = 'fa-circle-xmark';
+             bgClass = 'bg-danger';
+             textClass = 'text-white';
+         } else if (type === 'warning') {
+             iconClass = 'fa-triangle-exclamation';
+             bgClass = 'bg-warning';
+             textClass = 'text-dark';
+         }
+
+         $('#toastMessage').removeClass().addClass(`toast align-items-center ${bgClass} border-0 ${textClass}`);
+         $('#toastContent').html(`<i class="fa-solid ${iconClass} me-2"></i>${message}`);
+         toast.show();
+     }
+
+     // Disable/Enable Specific Elements During Processing
+    function disableElements(selector) {
+        $(selector).prop('disabled', true);
+    }
+
+    function enableElements(selector) {
+        $(selector).prop('disabled', false);
+    }
+     
+     // Show Spinner and Disable Form
+     function showProcessing(buttonTextId, spinnerId) {
+         $(`#${buttonTextId}`).text('Processing...');
+         $(`#${spinnerId}`).removeClass('d-none');
+         
+         // Disable inputs and buttons (keep them visible)
+         $('#updateEmailForm input, #updateEmailForm button').each(function() {
+           $(this).attr('readonly', true); // For inputs
+           if ($(this).is('button')) {
+               $(this).prop('disabled', true); // For buttons
+           }
+         });
+     }
+
+     // Hide Spinner and Enable Form
+     function hideProcessing(buttonTextId, spinnerId) {
+         const originalTextMap = {
+            'sendOtpButtonText': 'Send OTP',
+             'verifyButtonText': 'Verify',
+             'resendEmailOtp': 'Resend OTP'
+         };
+         $(`#${buttonTextId}`).text(originalTextMap[buttonTextId] || 'Submit');
+         $(`#${spinnerId}`).addClass('d-none');
+         
+         // Re-enable inputs and buttons
+        $('#updateEmailForm input, #updateEmailForm button').each(function() {
+         $(this).removeAttr('readonly'); // For inputs
+         if ($(this).is('button')) {
+             $(this).prop('disabled', false); // For buttons
+         }
+         });
+       }
+
+
+     // Client-side Validation for Update Email Form
+     function validateUpdateEmailForm() {
+         let isValid = true;
+         $('.validation-error').text('');
+         const newEmail = $("#new_email").val().trim();
+         // Email Validation
+         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+         if (!emailRegex.test(newEmail)) {
+             $("#newEmailError").text("Please enter a valid email address.");
+             isValid = false;
+         }
+         return isValid;
+     }
+
+     // Client-side Validation for Verify Email OTP Form
+     function validateVerifyEmailForm() {
+         let isValid = true;
+         $('.validation-error').text('');
+
+         const emailOtp = $("#verify_email_otp").val().trim();
+
+         const otpRegex = /^\d{4,6}$/; // Example: 4-6 digits
+         if (!otpRegex.test(emailOtp)) {
+             $("#emailOtpError").text("Please enter a valid OTP (4-6 digits).");
+             isValid = false;
+         }
+         return isValid;
+     }
+
+     // Function to Logout User
+     function logoutUser(callback) {
+         $.ajax({
+             url: API_BASE_URL + "authuser/logout/",
+             method: "POST",
+             xhrFields: { withCredentials: true },
+             success: function() {
+                 if (callback) callback();
+             },
+             error: function() {
+                 if (callback) callback();
+             }
+         });
+     }
+
+     // Function to reset the form to Step 1
+     function resetToStep1() {
+         // Clear all input fields and error messages
+         $('#updateEmailForm')[0].reset();
+         $('.validation-error').text('');
+         // Hide Step 2 and show Step 1
+         $("#step2").addClass("d-none");
+         $("#step1").removeClass("d-none");
+         // Clear stored email
+         tempEmail = null;
+     }
+
+    let tempNewEmail = null; // Store the temporary email
+    let tempEmail = null; // Store the temporary email
+
+
+    $(document).ready(function () {
+
+        // 1) Check if user is logged in
+        $.ajax({
+            url: API_BASE_URL + "authuser/profile/",
+            method: "GET",
+            xhrFields: { withCredentials: true },
+            success: function (profile) {
+                $("#updateEmailForm").show();
+            },
+            error: function () {
+                window.location.href = '/login/';
+            }
+        });
+
+
+        // 2) Submit new email (Step 1)
+        $("#updateEmailForm").on("submit", function (e) {
+            e.preventDefault();
+
+            if (!validateUpdateEmailForm()) {
+                return;
+            }
+            const newEmail = $("#new_email").val().trim();
+            tempEmail = newEmail;
+            showProcessing('sendOtpButtonText', 'sendOtpSpinner');
+            console.log(tempEmail)
+            grecaptcha.ready(function () {
+                grecaptcha.execute('6LdXX5gqAAAAAJWm-9E3rACC9HaZpUhtGNtAS_KP', { action: 'submit' })
+                    .then(function (token) {
+                        const payload = {
+                            "new_email": newEmail,
+                            "google_recaptcha_v3_token": token
+                        };
+                        $.ajax({
+                            url: API_BASE_URL + "authuser/update_email/",
+                            method: "POST",
+                            xhrFields: { withCredentials: true },
+                            contentType: "application/json",
+                            data: JSON.stringify(payload),
+                            success: function () {
+                                tempNewEmail = newEmail;
+                                $("#step1").addClass('d-none');
+                                $("#step2").removeClass('d-none');
+                                showToast("OTP sent to your new email.", "success");
+                            },
+                            error: function (xhr) {
+                                let msg = "Could not send OTP.";
+                                if (xhr.responseJSON && xhr.responseJSON.detail) {
+                                    msg = xhr.responseJSON.detail;
+                                }
+                                showToast(msg, "error");
+                            },
+                            complete: function () {
+                                hideProcessing('sendOtpButtonText', 'sendOtpSpinner');
+                            }
+                        });
+                    });
+            });
+
+        });
+
+          // 3) Verify Email OTP (Step 2)
+          $("#verifyOtpButton").on("click", function () {
+            
+            if (!validateVerifyEmailForm()) {
+              return;
+            }
+            const emailOtp = $("#verify_email_otp").val().trim();
+            
+            showProcessing('verifyButtonText', 'verifySpinner');
+            grecaptcha.ready(function() {
+              grecaptcha.execute('6LdXX5gqAAAAAJWm-9E3rACC9HaZpUhtGNtAS_KP', { action: 'verify_email' })
+                .then(function(token) {
+                    $.ajax({
+                        url: API_BASE_URL + "authuser/update_email_verify/",
+                        method: "POST",
+                        xhrFields: { withCredentials: true },
+                        contentType: "application/json",
+                        data: JSON.stringify({
+                            "new_email": tempNewEmail,
+                            "email_otp": emailOtp,
+                            "google_recaptcha_v3_token": token
+                        }),
+                        success: function () {
+                            
+                            showToast("Email updated successfully. Logging out.", "success");
+                            setTimeout(function () {
+                                // Logout the user to prevent automatic login
+                                logoutUser(function () {
+                                    window.location.href = "/login/";
+                                });
+                            }, 2000);
+                        },
+                        error: function (xhr) {
+                            
+                            let msg = "Email verification failed.";
+                            if (xhr.responseJSON && xhr.responseJSON.detail) {
+                                msg = xhr.responseJSON.detail;
+                            }
+                            showToast(msg, "error");
+                        },
+                        complete: function () {
+                            hideProcessing('verifyButtonText', 'verifySpinner');
+                        }
+                    });
+                });
+           });
+         });
+           // Cancel button to go back to step 1
+         $("#cancelRegistrationButton").on("click", function() {
+           resetToStep1();
+         });
+
+
+       
+        // RESEND EMAIL OTP
+        $("#resendEmailOtp").on("click", function() {
+            console.log("Resend OTP clicked");
+            if (!tempEmail) {
+                console.log("Error: Email not available for resending OTP.");
+                showToast("Email not available for resending OTP.", "error");
+                return;
+            }
+
+            console.log("tempEmail:", tempEmail);
+
+            // Disable the Resend Email OTP link during processing
+            showProcessing("resendEmailOtp", "resendEmailSpinner");
+
+            grecaptcha.ready(function() {
+                grecaptcha.execute('6LdXX5gqAAAAAJWm-9E3rACC9HaZpUhtGNtAS_KP', {action: 'resend_email_otp'})
+                .then(function(token) {
+                    $.ajax({
+                        url: API_BASE_URL + "authuser/resend-email-otp/",
+                        method: "POST",
+                        xhrFields: { withCredentials: true },
+                        contentType: "application/json",
+                        data: JSON.stringify({
+                            email: tempEmail,
+                            google_recaptcha_v3_token: token
+                        }),
+                        success: function() {
+                            console.log("resend otp success");
+
+                            showToast("Email OTP has been resent.", "success");
+                        },
+                        error: function(xhr) {
+                            console.log("resend otp error", xhr);
+
+                            let msg = "Resend Email OTP failed.";
+                            if (xhr.responseJSON && xhr.responseJSON.detail) {
+                                msg = xhr.responseJSON.detail;
+                            }
+                            showToast(msg, "error");
+                        },
+                        complete: function() {
+                            hideProcessing("resendEmailOtp", "resendEmailSpinner");
+                            enableElements("#resendEmailOtp");
+                        }
+                    });
+                });
+            });
+        });
+
+
+    });
+</script>
+{% endblock %}

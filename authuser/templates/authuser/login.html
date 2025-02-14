@@ -1,0 +1,241 @@
+<!-- authuser/templates/authuser/login.html -->
+{% extends "authuser/base.html" %}
+
+{% load static %}
+
+{% block title %}{% endblock title %}
+
+{% block extra_head  %}
+<style>
+    input[disabled], button[disabled], textarea[disabled], select[disabled] {
+        opacity: 0.6; /* Optional: Add a dimming effect */
+        pointer-events: none; /* Prevent interaction */
+        cursor: not-allowed; /* Show a disabled cursor */
+    }    
+</style>
+{% endblock extra_head  %}
+
+{% block content %}
+
+<div class="rbt-elements-area bg-color-white mt--30" >
+    <div class="container h-100 d-flex align-items-center justify-content-center">
+        <div class="row gy-5 row--30 w-100 justify-content-center">
+            <div class="col-lg-6">
+                <div class="rbt-contact-form contact-form-style-1 max-width-auto">                    
+                    <h4>Login</h4>
+                    <div id="alert-message"></div>
+                    <form class="max-width-auto rbt-default-form" id="loginForm" novalidate>
+                        
+                        <div class="rbt-form-group">
+                          <label for="identifier" class="form-label">User ID (Mobile or Email) *</label>
+                          <input type="text" class="form-control" id="identifier" required>
+                          <div class="validation-error" id="identifierError"></div>
+                        </div>
+
+                        <div class="rbt-form-group">
+                          <label for="password" class="form-label">Password *</label>
+                          <input type="password" class="form-control" id="password" required>
+                          <div class="validation-error" id="passwordError"></div>
+                        </div>
+                        <input type="hidden" id="google_recaptcha_v3_token" value="">
+                        <div class="row mb--30">
+                          <div class="col-lg-6">
+                              <div class="rbt-checkbox">
+                                <div class="rbt-lost-password">
+                                  <a class="rbt-btn-link" href="{% url "activate" %}">Active Account</a>
+                              </div>
+                              </div>
+                          </div>
+                          <div class="col-lg-6">
+                              <div class="rbt-lost-password text-end">
+                                  <a class="rbt-btn-link" href="{% url "forgot_password" %}">Forgot Password</a>
+                              </div>
+                          </div>
+                      </div>
+
+                        <div class="form-submit-group">
+                            
+                            <button type="submit" class="rbt-btn btn-md btn-gradient hover-icon-reverse w-100">
+                              <span id="loginButtonText">Login</span>
+                              <i class="fa-solid fa-spinner fa-spin d-none" id="loginSpinner"></i>
+                          </button>
+                        </div>
+
+                        <!-- Register Link -->
+                         <div class="text-center mt-3">
+                            <p>Don't have an account? <a href="{% url "register" %}" class="rbt-link">Register</a></p>
+                        </div>
+
+                    </form>
+                   
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
+{% block extra_script %}
+<script>    
+
+    // Initialize Bootstrap Toast
+    const toastEl = document.getElementById('toastMessage');
+    const toast = new bootstrap.Toast(toastEl);
+
+    // Show Toast Function
+    function showToast(message, type = 'info') {
+        let iconClass = 'fa-circle-info';
+        let bgClass = 'bg-primary';
+        let textClass = '';
+
+        if (type === 'success') {
+          iconClass = 'fa-circle-check';
+          bgClass = 'bg-success';
+          textClass = 'text-white'; 
+        } else if (type === 'error') {
+            iconClass = 'fa-circle-xmark';
+            bgClass = 'bg-danger';
+            textClass = 'text-white';
+        } else if (type === 'warning') {
+            iconClass = 'fa-triangle-exclamation';
+            bgClass = 'bg-warning';
+            textClass = 'text-dark';
+        }
+
+        $('#toastMessage').removeClass().addClass(`toast align-items-center ${bgClass} border-0 ${textClass}`);
+        $('#toastContent').html(`<i class="fa-solid ${iconClass} me-2"></i>${message}`);
+        toast.show();
+    }
+
+    // Show Spinner and Disable Form
+    function showProcessing() {
+        $('#loginButtonText').text('Logging in...');
+        $('#loginSpinner').removeClass('d-none');
+        
+        // Disable inputs and buttons (keep them visible)
+        $('#loginForm input, #loginForm button').each(function() {
+            $(this).attr('readonly', true); // For inputs
+            if ($(this).is('button')) {
+                $(this).prop('disabled', true); // For buttons
+            }
+        });
+    }
+
+    // Hide Spinner and Enable Form
+    function hideProcessing() {
+        $('#loginButtonText').text('Login');
+        $('#loginSpinner').addClass('d-none');
+        
+        // Re-enable inputs and buttons
+        $('#loginForm input, #loginForm button').each(function() {
+            $(this).removeAttr('readonly'); // For inputs
+            if ($(this).is('button')) {
+                $(this).prop('disabled', false); // For buttons
+            }
+        });
+    }
+
+    // Client-side Validation
+    function validateLoginForm() {
+        let isValid = true;
+        $('.validation-error').text('');
+
+        const identifier = $("#identifier").val().trim();
+        const password = $("#password").val();
+
+        if (!identifier) {
+            $("#identifierError").text("Please enter your identifier.");
+            isValid = false;
+        }
+
+        if (!password) {
+            $("#passwordError").text("Please enter your password.");
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    // Generate reCAPTCHA token on page load and store it
+    function generateRecaptchaToken() {
+        grecaptcha.ready(function() {
+            grecaptcha.execute('6LdXX5gqAAAAAJWm-9E3rACC9HaZpUhtGNtAS_KP', {action: 'submit'})
+            .then(function(token) {
+                $('#google_recaptcha_v3_token').val(token);
+            });
+    });
+    }
+
+    $(document).ready(function() {
+        generateRecaptchaToken();
+
+        // Check if user is already logged in:
+        $.ajax({
+            url: API_BASE_URL + "authuser/profile/",
+            method: "GET",
+            xhrFields: { withCredentials: true },
+            success: function(profile) {
+                // Already logged in -> go home or profile
+                if (profile.is_kyc_updated) {
+                    window.location.href = "{% url 'home' %}";
+                } else {
+                    window.location.href = "{% url 'profile' %}";
+                }
+            },
+            error: function() {
+                // Not logged in, do nothing
+            }
+        });
+
+        $("#loginForm").on("submit", function(e) {
+            e.preventDefault();
+
+            if (!validateLoginForm()) {
+                return;
+            }
+
+            const identifier = $("#identifier").val().trim();
+            const password = $("#password").val();
+            const captchaToken = $("#google_recaptcha_v3_token").val();
+
+            showProcessing();
+
+            $.ajax({
+                url: API_BASE_URL + "authuser/login/",
+                method: "POST",
+                xhrFields: { withCredentials: true },
+                contentType: "application/json",
+                data: JSON.stringify({
+                    "identifier": identifier,
+                    "password": password,
+                    "google_recaptcha_v3_token": captchaToken
+                }),
+                success: function(response) {
+                    if (response.detail === "Login successful.") {
+                        // If KYC not updated -> profile
+                        if (response.kyc === "not updated") {
+                            window.location.href = "{% url 'profile' %}";
+                        } else {
+                            window.location.href = "{% url 'home' %}";
+                        }
+                    } else {
+                        showToast(response.detail || "Login failed", "error");
+                    }
+                },
+                error: function(xhr) {
+                    let msg = "Login failed. Please try again.";
+                    if (xhr.responseJSON && xhr.responseJSON.detail) {
+                        msg = xhr.responseJSON.detail;
+                    }
+                    showToast(msg, "error");
+                },
+                complete: function() {
+                    hideProcessing();
+                    generateRecaptchaToken(); // Refresh token after each attempt
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

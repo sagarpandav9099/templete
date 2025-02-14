@@ -1,0 +1,501 @@
+<!-- authuser/templates/authuser/login.html -->
+{% extends "authuser/dashboard_base.html" %}
+
+{% load static %}
+
+{% block title %}{% endblock title %}
+
+{% block extra_head  %}
+<style>
+    input[disabled], button[disabled], textarea[disabled], select[disabled] {
+        opacity: 0.6; /* Optional: Add a dimming effect */
+        pointer-events: none; /* Prevent interaction */
+        cursor: not-allowed; /* Show a disabled cursor */
+    }    
+    /* Adjust the height of the select2 container */
+    .select2-container--classic .select2-selection--single {
+        height: 50px; /* Increase this value as needed */        
+        font-size: 16px; /* Optional: Increase font size */
+        margin-bottom: 15px;
+    }
+
+    /* Align the text inside the select box */
+    .select2-container--classic .select2-selection--single .select2-selection__rendered {
+        line-height: 50px; /* Match the height of the select box */
+    }
+
+    /* Adjust the dropdown arrow alignment */
+    .select2-container--classic .select2-selection--single .select2-selection__arrow {
+        height: 48px; /* Slightly less than the container height */
+        width: 34px; /* Adjust as necessary */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+     input[readonly],  input[aria-readonly="true"] {
+        background-color: #e9ecef;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock extra_head  %}
+
+{% block dashboard_content %}
+                    <div class="col-lg-9">
+                        <!-- Start Instructor Profile  -->
+                        <div class="rbt-dashboard-content bg-color-white rbt-shadow-box">
+                            <div class="content">
+
+                                <div class="section-title">
+                                    <h4 class="rbt-title-style-3">Profile & KYC Update</h4>
+                                </div>
+                                    <div class="tab-pane fade active show" id="profile" role="tabpanel" aria-labelledby="profile-tab">                                        
+                                        <!-- Start Profile Row  -->
+                                        <form class="max-width-auto rbt-default-form row row--15" id="profileForm" novalidate>
+                                            <div class="col-lg-6 col-md-6 col-sm-6 col-12">
+                                                <div class="rbt-form-group mb-3">
+                                                    <label for="first_name" class="form-label">First Name *</label>
+                                                    <input type="text" class="form-control" id="first_name" required>
+                                                    <div class="validation-error text-danger" id="firstNameError"></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 col-md-6 col-sm-6 col-12">
+                                                <div class="rbt-form-group mb-3">
+                                                    <label for="last_name" class="form-label">Last Name *</label>
+                                                    <input type="text" class="form-control" id="last_name" required>
+                                                    <div class="validation-error text-danger" id="lastNameError"></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 col-md-6 col-sm-6 col-12">
+                                                <div class="rbt-form-group mb-3">
+                                                    <label for="birth_date" class="form-label">Birth Date *</label>
+                                                    <input type="date" class="form-control" id="birth_date" required>
+                                                    <div class="validation-error text-danger" id="birthDateError"></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 col-md-6 col-sm-6 col-12">
+                                                <div class="rbt-form-group mb-3">
+                                                    <label for="gender" class="form-label">Gender *</label>
+                                                    <select id="gender" class="form-control form-control-lg js-country-single" required >
+                                                        <option value="">Select Gender</option>
+                                                        <option value="Male">Male</option>
+                                                        <option value="Female">Female</option>
+                                                        <option value="Other">Other</option>
+                                                    </select>
+                                                    <div class="validation-error text-danger" id="genderError"></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-12 col-md-12 col-sm-12 col-12">
+                                                <div class="rbt-form-group  mb-3">
+                                                    <label for="address" class="form-label">Address</label>
+                                                    <input type="text" class="form-control" id="address" required>
+                                                    <div class="validation-error text-danger" id="addressError"></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-12 col-md-12 col-sm-12 col-12">
+                                                <div class="rbt-form-group mb-3">
+                                                    <label for="country" class="form-label">Country</label>
+                                                    <input type="text" class="form-control" id="country" name="country" readonly aria-readonly="true">
+                                                    <div class="validation-error text-danger" id="countryError"></div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="col-lg-6 col-md-6 col-sm-6 col-12">
+                                                <div class="rbt-form-group mb-3">
+                                                    <label for="state" class="form-label">State *</label>
+                                                    <select class="form-control " id="state" required >
+                                                        <option value="">Select State</option>
+                                                        <!-- Options will be loaded dynamically -->
+                                                    </select>
+                                                    <div class="validation-error text-danger" id="stateError"></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 col-md-6 col-sm-6 col-12">
+                                                <div class="rbt-form-group mb-3">
+                                                    <label for="city" class="form-label">City *</label>
+                                                    <select id="city" class="form-control " required >
+                                                        <option value="">Select City</option>
+                                                        <!-- Options will be loaded dynamically -->
+                                                    </select>
+                                                    <div class="validation-error text-danger" id="cityError"></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 col-md-6 col-sm-6 col-12">
+                                                <div class="rbt-form-group mb-3">
+                                                    <label for="postal_code" class="form-label">Postal Code *</label>
+                                                    <input type="text" class="form-control" id="postal_code" required>
+                                                    <div class="validation-error text-danger" id="postalCodeError"></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-lg-6 col-md-6 col-sm-6 col-12">
+                                                <div class="rbt-form-group mb-3">
+                                                    <label for="nationality" class="form-label">Nationality *</label>
+                                                    <input type="text" class="form-control" id="nationality" required>
+                                                    <div class="validation-error text-danger" id="nationalityError"></div>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 mt--20">
+                                                 <div class="form-submit-group">
+                                                    <button type="submit" class="rbt-btn btn-gradient">
+                                                        <span id="updateButtonText">Update</span>
+                                                        <i class="fa-solid fa-spinner fa-spin d-none" id="updateSpinner"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </form>
+                                    </div>                                   
+                            </div>
+                        </div>
+                    </div>
+{% endblock dashboard_content %}
+
+{% block extra_script %}
+<script>
+    let userCountryId = null;
+    let userStateId = null;
+    let userCityId = null;
+    
+
+   
+
+    $('#state').select2({
+        theme: 'classic',            
+        placeholder: "Select a state",            
+        width: '100%', // Ensures it fits the container
+        // Optional: Add more Select2 options here
+    });
+
+    $('#city').select2({
+        theme: 'classic',            
+        placeholder: "Select a city",            
+        width: '100%', // Ensures it fits the container
+        // Optional: Add more Select2 options here
+    });
+    $('#gender').select2({
+        theme: 'classic',            
+        placeholder: "Select a gender",            
+        width: '100%', // Ensures it fits the container
+        // Optional: Add more Select2 options here
+    });
+
+    // Initialize Bootstrap Toast
+    const toastEl = document.getElementById('toastMessage');
+    const toast = new bootstrap.Toast(toastEl);
+
+    // Show Toast Function
+    function showToast(message, type = 'info') {
+        let iconClass = 'fa-circle-info';
+        let bgClass = 'bg-primary';
+        let textClass = '';
+
+        if (type === 'success') {
+          iconClass = 'fa-circle-check';
+          bgClass = 'bg-success';
+          textClass = 'text-white'; 
+        } else if (type === 'error') {
+            iconClass = 'fa-circle-xmark';
+            bgClass = 'bg-danger';
+            textClass = 'text-white';
+        } else if (type === 'warning') {
+            iconClass = 'fa-triangle-exclamation';
+            bgClass = 'bg-warning';
+            textClass = 'text-dark';
+        }
+
+        $('#toastMessage').removeClass().addClass(`toast align-items-center ${bgClass} border-0 ${textClass}`);
+        $('#toastContent').html(`<i class="fa-solid ${iconClass} me-2"></i>${message}`);
+        toast.show();
+    }
+
+    // Disable/Enable Specific Elements During Processing
+    function disableElements(selector) {
+        $(selector).prop('disabled', true);
+    }
+
+    function enableElements(selector) {
+        $(selector).prop('disabled', false);
+    }
+    // Show Spinner and Disable Form
+    function showProcessing(buttonTextId, spinnerId) {
+        $(`#${buttonTextId}`).text('Processing...');
+        $(`#${spinnerId}`).removeClass('d-none');
+        $('form :input').prop('disabled', true);
+    }
+
+    // Hide Spinner and Enable Form
+    function hideProcessing(buttonTextId, spinnerId) {
+        const originalTextMap = {
+            'updateButtonText': 'Update'
+        };
+        $(`#${buttonTextId}`).text(originalTextMap[buttonTextId] || 'Submit');
+        $(`#${spinnerId}`).addClass('d-none');
+        $('form :input').prop('disabled', false);
+    }
+
+    // Client-side Validation for Profile Form
+    function validateProfileForm() {
+        let isValid = true;
+
+        // Clear previous errors
+        $('.validation-error').text('');
+
+        const firstName = $("#first_name").val().trim();
+        const lastName = $("#last_name").val().trim();
+        const birthDate = $("#birth_date").val();
+        const gender = $("#gender").val();
+        const nationality = $("#nationality").val().trim();
+        const address = $("#address").val().trim();
+        const state = $("#state").val();
+        const city = $("#city").val();
+        const postalCode = $("#postal_code").val().trim();
+
+        if (!firstName) {
+            $("#firstNameError").text("First name is required.");
+            isValid = false;
+        }
+
+        if (!lastName) {
+            $("#lastNameError").text("Last name is required.");
+            isValid = false;
+        }
+
+        if (!birthDate) {
+            $("#birthDateError").text("Birth date is required.");
+            isValid = false;
+        }
+
+        if (!gender) {
+            $("#genderError").text("Please select your gender.");
+            isValid = false;
+        }
+
+        if (!nationality) {
+            $("#nationalityError").text("Nationality is required.");
+            isValid = false;
+        }
+
+        if (!address) {
+            $("#addressError").text("Address is required.");
+            isValid = false;
+        }
+
+        if (!state) {
+            $("#stateError").text("Please select a state.");
+            isValid = false;
+        }
+
+        if (!city) {
+            $("#cityError").text("Please select a city.");
+            isValid = false;
+        }
+
+        if (!postalCode) {
+            $("#postalCodeError").text("Postal code is required.");
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    // Function to Load Countries Dynamically
+    function loadCountries() {
+        $.ajax({
+            url: API_BASE_URL + "master/countries/",
+            method: "GET",
+            success: function (data) {
+                // Countries are already loaded during registration, but ensuring it's available here if needed
+            },
+            error: function () {
+                showToast("Failed to load countries. Please try again later.", "error");
+            }
+        });
+    }
+
+    // Function to Load States Dynamically
+    function loadStates(countryId, selectedStateId) {
+        $.ajax({
+            url: API_BASE_URL + "master/states/?country=" + countryId,
+            method: "GET",
+            success: function (response) {
+                $("#state").empty();
+                $("#state").append('<option value="">Select State</option>');
+                response.results.forEach(function (st) {
+                    const selected = (st.id === selectedStateId) ? 'selected' : '';
+                    $("#state").append(`<option value="${st.id}" ${selected}>${st.name}</option>`);
+                });
+                 selectedStateId = selectedStateId;
+                // If a state was previously selected, load cities
+                if (selectedStateId) {
+                    loadCities(selectedStateId, selectedCityId);
+                }
+            },
+            error: function () {
+                $("#state").html('<option value="">Failed to load states</option>');
+                showToast("Failed to load states. Please try again later.", "error");
+            }
+        });
+    }
+
+    // Function to Load Cities Dynamically
+    function loadCities(stateId, selectedCityId) {
+        $.ajax({
+            url: API_BASE_URL + "master/cities/?state=" + stateId,
+            method: "GET",
+            success: function (response) {
+
+                $("#city").empty();
+                $("#city").append('<option value="">Select City</option>');
+                response.results.forEach(function (ct) {
+                    const selected = (ct.id === selectedCityId) ? 'selected' : '';
+                    $("#city").append(`<option value="${ct.id}" ${selected}>${ct.name}</option>`);
+                });
+               $("#city").val(selectedCityId).trigger('change');
+            },
+            error: function () {
+              console.error("Failed to load cities",stateId)
+                $("#city").html('<option value="">Failed to load cities</option>');
+                showToast("Failed to load cities. Please try again later.", "error");
+            }
+        });
+    }
+    // Function to Load Country Name and Set Read-only Field
+    function loadCountryName(countryId) {
+        $.ajax({
+            url: API_BASE_URL + "master/countries/" + countryId + "/",
+            method: "GET",
+            success: function (data) {
+                $("#country").val(data.name + " (" + data.code + ")");
+                  $("#country").prop('readonly', true);
+                   $("#country").attr('aria-readonly', true);
+            },
+            error: function () {
+                $("#country").val("Unknown Country");
+                showToast("Failed to load country name.", "error");
+            }
+        });
+    }
+
+    // Function to Logout User
+    function logoutUser(callback) {
+        $.ajax({
+            url: API_BASE_URL + "authuser/logout/",
+            method: "POST",
+            xhrFields: { withCredentials: true },
+            success: function () {
+                if (callback) callback();
+            },
+            error: function () {
+                if (callback) callback();
+            }
+        });
+    }
+
+    $(document).ready(function(){
+        
+
+        // 1) Check if user is logged in (load profile)
+        $.ajax({
+            url: API_BASE_URL + "authuser/profile/",
+            method: "GET",
+            xhrFields: { withCredentials: true },
+            success: function (profile) {
+               
+                // Fill form
+                $("#first_name").val(profile.first_name);
+                $("#last_name").val(profile.last_name);
+                $("#birth_date").val(profile.birth_date);
+
+                $("#nationality").val(profile.nationality);
+                $("#address").val(profile.address);
+                $("#postal_code").val(profile.postal_code);
+
+                userGender = profile.gender;
+                $("#gender").val(userGender).trigger('change');
+
+                // Show user country as read-only text
+                // Assuming you store "country" as an ID
+                userCountryId = profile.country;
+                loadCountryName(profile.country);
+
+                // Set selected state and city id for updating
+                selectedStateId = profile.state;
+                selectedCityId = profile.city;
+
+                // Load states based on userCountryId
+                loadStates(userCountryId, profile.state);
+
+                // Set selected city if available
+                if (profile.city) {
+                    userCityId = profile.city;
+                }
+
+                $("#profileForm").show();
+            },
+            error: function () {
+                // Not logged in
+                window.location.href = "/login/";
+            }
+        });
+
+        // On state change -> load cities
+       $("#state").on("change", function () {
+          selectedStateId = $(this).val();
+            if (selectedStateId) {
+                loadCities(selectedStateId, null); // null for selectedCityId
+            } else {
+                $("#city").empty();
+                $("#city").append('<option value="">Select City</option>');
+            }
+        });
+
+        // Profile Form Submit
+        $("#profileForm").on("submit", function (e) {
+            e.preventDefault();
+
+            if (!validateProfileForm()) {
+                return;
+            }
+
+            const dataToPatch = {
+                first_name: $("#first_name").val().trim(),
+                last_name: $("#last_name").val().trim(),
+                birth_date: $("#birth_date").val(),
+                gender: $("#gender").val(),
+                nationality: $("#nationality").val().trim(),
+                address: $("#address").val().trim(),
+                state: parseInt($("#state").val()) || null,
+                city: parseInt($("#city").val()) || null,
+                postal_code: $("#postal_code").val().trim()
+            };
+
+            showProcessing('updateButtonText', 'updateSpinner');
+
+            $.ajax({
+                url: API_BASE_URL + "authuser/profile/",
+                method: "PATCH",
+                xhrFields: { withCredentials: true },
+                contentType: "application/json",
+                data: JSON.stringify(dataToPatch),
+                success: function () {
+                    showToast("Profile updated successfully. Redirecting to home.", "success");
+                    // Redirect after a short delay to allow toast to display
+                    setTimeout(function () {
+                        window.location.href = "/";
+                    }, 2000);
+                },
+                error: function (xhr) {
+                    let msg = "Profile update failed.";
+                    if (xhr.responseJSON && xhr.responseJSON.detail) {
+                        msg = xhr.responseJSON.detail;
+                    }
+                    showToast(msg, "error");
+                },
+                complete: function () {
+                    hideProcessing('updateButtonText', 'updateSpinner');
+                }
+            });
+        });
+       
+      
+    });
+</script>
+{% endblock %}

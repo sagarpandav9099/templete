@@ -1,0 +1,577 @@
+<!-- authuser/templates/authuser/register.html -->
+{% extends "authuser/base.html" %}
+{% load static %}
+
+{% block title %}Register{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Reuse the same disabled style as in login.html */
+    input[disabled],
+    button[disabled],
+    textarea[disabled],
+    select[disabled] {
+        opacity: 0.6; /* Optional: Add a dimming effect */
+        pointer-events: none; /* Prevent interaction */
+        cursor: not-allowed; /* Show a disabled cursor */
+    }
+    /* Additional styling for Resend OTP links */
+    .resend-otp {
+        cursor: pointer;
+        color: #0d6efd;
+        text-decoration: underline;
+        font-size: 0.9rem;
+    }
+    .resend-otp:hover {
+        color: #0a58ca;
+    }
+    /* Positioning spinner within Resend OTP */
+    .resend-otp .spinner {
+        margin-left: 5px;
+    }
+    /* Adjust the height of the select2 container */
+    .select2-container--classic .select2-selection--single {
+        height: 40px; /* Increase this value as needed */        
+        font-size: 16px; /* Optional: Increase font size */
+        margin-bottom: 8px;
+    }
+
+    /* Align the text inside the select box */
+    .select2-container--classic .select2-selection--single .select2-selection__rendered {
+        line-height: 40px; /* Match the height of the select box */
+    }
+
+    /* Adjust the dropdown arrow alignment */
+    .select2-container--classic .select2-selection--single .select2-selection__arrow {
+        height: 38px; /* Slightly less than the container height */
+        width: 34px; /* Adjust as necessary */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+   
+</style>
+{% endblock extra_head %}
+
+{% block content %}
+<div class="rbt-elements-area bg-color-white mt--30">
+    <div class="container h-100 d-flex align-items-center justify-content-center">
+        <div class="row gy-5 row--30 w-100 justify-content-center">
+            <div class="col-lg-6">
+                <div class="rbt-contact-form contact-form-style-1 max-width-auto">
+                    
+                    <!-- Heading -->
+                    <h4>Student Registration</h4>
+
+                    <!-- Alert / Toast placeholder (optional) -->
+                    <div id="alert-message"></div>
+
+                    <!-- Main Form -->
+                    <form class="max-width-auto rbt-default-form" id="registrationForm" novalidate>
+
+                        <!-- STEP 1: Registration Details -->
+                        <div id="step1">
+                            <div class="rbt-form-group mb-3">
+                                <label for="email" class="form-label">Email *</label>
+                                <input type="email" class="form-control" id="email" required>
+                                <div class="validation-error text-danger" id="emailError"></div>
+                            </div>
+
+                            <div class="rbt-form-group mb-3">
+                                <label for="mobile" class="form-label">Mobile *</label>
+                                <input type="text" class="form-control" id="mobile" required>
+                                <div class="validation-error text-danger" id="mobileError"></div>
+                            </div>
+
+                            <div class="rbt-form-group mb-3">
+                                <label for="country" class="form-label">Country *</label>
+                                <select class="form-control form-control-lg js-country-single" id="country" required>                                    
+                                    <!-- Populated dynamically -->
+                                </select>
+                                <div class="validation-error text-danger" id="countryError"></div>
+                            </div>
+
+                            <div class="rbt-form-group mb-3">
+                                <label for="password" class="form-label">Password *</label>
+                                <input type="password" class="form-control" id="password" required>
+                                <div class="validation-error text-danger" id="passwordError"></div>
+                            </div>
+
+                            <div class="rbt-form-group mb-3">
+                                <label for="confirmPassword" class="form-label">Confirm Password *</label>
+                                <input type="password" class="form-control" id="confirmPassword" required>
+                                <div class="validation-error text-danger" id="confirmPasswordError"></div>
+                            </div>
+
+                            <div class="form-submit-group mt-3">
+                                <button type="button" class="rbt-btn btn-md btn-gradient hover-icon-reverse w-100" id="registerButton">
+                                    <span id="registerButtonText">Register</span>
+                                    <i class="fa-solid fa-spinner fa-spin d-none" id="registerSpinner"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- /STEP 1 -->
+
+                        <!-- STEP 2: OTP Verification -->
+                        <div id="step2" class="d-none mt-4">
+                            <div class="rbt-form-group mb-3">
+                                <label for="email_otp" class="form-label">
+                                    Email OTP *
+                                    <span class="resend-otp" id="resendEmailOtp">
+                                        Resend OTP
+                                        <i class="fa-solid fa-spinner fa-spin d-none spinner" id="resendEmailSpinner"></i>
+                                    </span>
+                                </label>
+                                <input type="text" class="form-control" id="email_otp" required>
+                                <div class="validation-error text-danger" id="emailOtpError"></div>
+                            </div>
+
+                            <div class="rbt-form-group mb-3">
+                                <label for="mobile_otp" class="form-label">
+                                    Mobile OTP *
+                                    <span class="resend-otp" id="resendMobileOtp">
+                                        Resend OTP
+                                        <i class="fa-solid fa-spinner fa-spin d-none spinner" id="resendMobileSpinner"></i>
+                                    </span>
+                                </label>
+                                <input type="text" class="form-control" id="mobile_otp" required>
+                                <div class="validation-error text-danger" id="mobileOtpError"></div>
+                            </div>
+
+                            <div class="form-submit-group mt-3 d-flex justify-content-between">
+                                <button type="button" class="rbt-btn btn-md btn-secondary hover-icon-reverse" id="cancelRegistrationButton">
+                                    Cancel
+                                </button>
+                                <button type="button" class="rbt-btn btn-md btn-gradient hover-icon-reverse" id="verifyOtpButton">
+                                    <span id="verifyButtonText">Verify</span>
+                                    <i class="fa-solid fa-spinner fa-spin d-none" id="verifySpinner"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- /STEP 2 -->
+
+                    </form>
+                    <!-- /Main Form -->
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_script %}
+<script>
+    // Variables to store Email and Mobile after Step 1
+    let tempEmail = null;
+    let tempMobile = null;
+
+    // (Optional) Initialize Bootstrap Toast if you have a toastMessage in base.html
+    const toastEl = document.getElementById('toastMessage');
+    const toast = toastEl ? new bootstrap.Toast(toastEl) : null;
+
+    // Helper: Show Toast
+    function showToast(message, type = 'info') {
+        if (!toast) return; // if no toast in base
+        let iconClass = 'fa-circle-info';
+        let bgClass = 'bg-primary';
+        let textClass = '';
+
+        if (type === 'success') {
+            iconClass = 'fa-circle-check';
+            bgClass = 'bg-success';
+            textClass = 'text-white';
+        } else if (type === 'error') {
+            iconClass = 'fa-circle-xmark';
+            bgClass = 'bg-danger';
+            textClass = 'text-white';
+        } else if (type === 'warning') {
+            iconClass = 'fa-triangle-exclamation';
+            bgClass = 'bg-warning';
+        }
+
+        $('#toastMessage').removeClass().addClass(`toast align-items-center ${bgClass} border-0 ${textClass}`);
+        $('#toastContent').html(`<i class="fa-solid ${iconClass} me-2"></i>${message}`);
+        toast.show();
+    }
+
+    // Disable/Enable Specific Elements During Processing
+    function disableElements(selector) {
+        $(selector).prop('disabled', true);
+    }
+
+    function enableElements(selector) {
+        $(selector).prop('disabled', false);
+    }
+
+    // Show Spinner and Disable Specific Elements
+    function showProcessing(buttonTextId, spinnerId, newText = 'Processing...', elementsToDisable = null) {
+        $(`#${buttonTextId}`).text(newText);
+        $(`#${spinnerId}`).removeClass('d-none');
+        if (elementsToDisable) {
+            disableElements(elementsToDisable);
+        }
+    }
+
+    // Hide Spinner and Enable Specific Elements
+    function hideProcessing(buttonTextId, spinnerId, originalText = 'Submit', elementsToEnable = null) {
+        const originalTextMap = {
+            'registerButtonText': 'Register',
+            'verifyButtonText': 'Verify',
+            'resendEmailOtp': 'Resend OTP',
+            'resendMobileOtp': 'Resend OTP'
+        };
+        $(`#${buttonTextId}`).text(originalTextMap[buttonTextId] || originalText);
+        $(`#${spinnerId}`).addClass('d-none');
+        if (elementsToEnable) {
+            enableElements(elementsToEnable);
+        }
+    }
+
+    // Client-side Validation for Registration Form
+    function validateRegistrationForm() {
+        let isValid = true;
+
+        // Clear previous errors
+        $('.validation-error').text('');
+
+        const email = $("#email").val().trim();
+        const mobile = $("#mobile").val().trim();
+        const country = $("#country").val();
+        const password = $("#password").val();
+        const confirmPassword = $("#confirmPassword").val();
+
+        // Email Validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            $("#emailError").text("Please enter a valid email address.");
+            isValid = false;
+        }
+
+        // Mobile Validation (Example: 10-15 digits)
+        const mobileRegex = /^\d{10,15}$/;
+        if (!mobileRegex.test(mobile)) {
+            $("#mobileError").text("Please enter a valid mobile number (10-15 digits).");
+            isValid = false;
+        }
+
+        // Country Validation
+        if (!country) {
+            $("#countryError").text("Please select a country.");
+            isValid = false;
+        }
+
+        // Password Validation (Example: minimum 6 characters)
+        if (password.length < 6) {
+            $("#passwordError").text("Password must be at least 6 characters long.");
+            isValid = false;
+        }
+
+        // Confirm Password Validation
+        if (password !== confirmPassword) {
+            $("#confirmPasswordError").text("Passwords do not match.");
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    // Client-side Validation for OTP Form
+    function validateOtpForm() {
+        let isValid = true;
+        $('.validation-error').text('');
+
+        const emailOtp = $("#email_otp").val().trim();
+        const mobileOtp = $("#mobile_otp").val().trim();
+
+        // OTP Regex Example: 4-6 digits
+        const otpRegex = /^\d{4,6}$/;
+        if (!otpRegex.test(emailOtp)) {
+            $("#emailOtpError").text("Please enter a valid Email OTP (4-6 digits).");
+            isValid = false;
+        }
+        if (!otpRegex.test(mobileOtp)) {
+            $("#mobileOtpError").text("Please enter a valid Mobile OTP (4-6 digits).");
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    // Function to Load Countries Dynamically
+    function loadCountries() {
+        console.log("Initiating AJAX call to load countries...");
+    
+        $.ajax({
+            url: API_BASE_URL + "master/countries/",
+            method: "GET",
+            success: function(data) {
+                console.log("AJAX Success: Received data:", data);
+    
+                if(data && data.results && data.results.length > 0) {
+                    const countries = data.results;
+                    const countrySelect = $(".js-country-single");                    
+    
+                    console.log("Populating the country dropdown...");
+    
+                    countrySelect.empty();
+                    // countrySelect.append('<option value="">Select Country</option>');
+    
+                    countries.forEach(function(country, index) {
+                        console.log(`Adding country ${index + 1}:`, country);
+                        countrySelect.append(`<option value="${country.id}">${country.name} (${country.code})</option>`);
+                    });
+    
+                    console.log("Country dropdown populated successfully.");
+                } else {
+                    showToast("No countries found.", "warning");
+                    console.warn("No countries returned from the API.");
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error("Failed to load countries:", error);
+                showToast("Failed to load countries. Please try again later.", "error");
+            }
+        });
+    }
+
+    // Function to Logout User (if necessary)
+    function logoutUser(callback) {
+        $.ajax({
+            url: API_BASE_URL + "authuser/logout/",
+            method: "POST",
+            xhrFields: { withCredentials: true },
+            success: function() {
+                if (callback) callback();
+            },
+            error: function() {
+                if (callback) callback();
+            }
+        });
+    }
+
+    // Function to reset the form to Step 1
+    function resetToStep1() {
+        // Clear all input fields and error messages
+        $('#registrationForm')[0].reset();
+        $('.validation-error').text('');
+        // Hide Step 2 and show Step 1
+        $("#step2").addClass("d-none");
+        $("#step1").removeClass("d-none");
+        // Clear stored email and mobile
+        tempEmail = null;
+        tempMobile = null;
+    }
+
+    $(document).ready(function(){
+
+        $('.js-country-single').select2({
+            theme: 'classic',            
+            placeholder: "Select a country",            
+            width: '100%', // Ensures it fits the container
+            // Optional: Add more Select2 options here
+        });
+
+        // Load countries on page load
+        loadCountries();
+
+        // Registration Step 1: Send OTP
+        $("#registerButton").on("click", function() {
+            if (!validateRegistrationForm()) return;
+
+            showProcessing("registerButtonText", "registerSpinner", "Sending OTP...", "#registerButton");
+
+            const email = $("#email").val().trim();
+            const mobile = $("#mobile").val().trim();
+            const country = parseInt($("#country").val()) || 1;
+            const password = $("#password").val();
+
+            // Store these for step 2
+            tempEmail = email;
+            tempMobile = mobile;
+
+            // reCAPTCHA for Step 1
+            grecaptcha.ready(function() {
+                grecaptcha.execute('6LdXX5gqAAAAAJWm-9E3rACC9HaZpUhtGNtAS_KP', {action: 'register'})
+                .then(function(token) {
+                    const payload = {
+                        email: email,
+                        mobile: mobile,
+                        password: password,
+                        user_type: 'student',
+                        country: country,
+                        google_recaptcha_v3_token: token
+                    };
+
+                    $.ajax({
+                        url: API_BASE_URL + "authuser/register/",
+                        method: "POST",
+                        xhrFields: { withCredentials: true },
+                        contentType: "application/json",
+                        data: JSON.stringify(payload),
+                        success: function(response) {
+                            showToast("Registration successful. OTP sent for verification.", "success");
+                            // Hide Step1, Show Step2
+                            $("#step1").addClass("d-none");
+                            $("#step2").removeClass("d-none");
+                        },
+                        error: function(xhr) {
+                            let msg = "Registration failed.";
+                            if (xhr.responseJSON && xhr.responseJSON.detail) {
+                                msg = xhr.responseJSON.detail;
+                            }
+                            showToast(msg, "error");
+                        },
+                        complete: function() {
+                            hideProcessing("registerButtonText", "registerSpinner", "Register", "#registerButton");
+                        }
+                    });
+                });
+            });
+        });
+
+        // Step 2: Verify OTP
+        $("#verifyOtpButton").on("click", function() {
+            if (!validateOtpForm()) return;
+
+            showProcessing("verifyButtonText", "verifySpinner", "Verifying...", "#verifyOtpButton");
+
+            const email_otp = $("#email_otp").val().trim();
+            const mobile_otp = $("#mobile_otp").val().trim();
+
+            // reCAPTCHA for Step 2
+            grecaptcha.ready(function() {
+                grecaptcha.execute('6LdXX5gqAAAAAJWm-9E3rACC9HaZpUhtGNtAS_KP', {action: 'verify'})
+                .then(function(token) {
+                    const payload = {
+                        email: tempEmail,
+                        mobile: tempMobile,
+                        email_otp: email_otp,
+                        mobile_otp: mobile_otp,
+                        google_recaptcha_v3_token: token
+                    };
+
+                    $.ajax({
+                        url: API_BASE_URL + "authuser/verify/",
+                        method: "POST",
+                        xhrFields: { withCredentials: true },
+                        contentType: "application/json",
+                        data: JSON.stringify(payload),
+                        success: function() {
+                            showToast("Registration & Verification successful. You can now log in.", "success");
+                            $("#step2").addClass("d-none");
+                            resetToStep1();
+                            // Redirect to login after a short delay
+                            setTimeout(function() {
+                                window.location.href = "{% url 'login' %}";
+                            }, 2000);
+                        },
+                        error: function(xhr){
+                            let msg = "Verification failed.";
+                            if (xhr.responseJSON && xhr.responseJSON.detail) {
+                                msg = xhr.responseJSON.detail;
+                            }
+                            showToast(msg, "error");
+                        },
+                        complete: function() {
+                            hideProcessing("verifyButtonText", "verifySpinner", "Verify", "#verifyOtpButton");
+                        }
+                    });
+                });
+            });
+        });
+
+        // CANCEL REGISTRATION OPERATION
+        $("#cancelRegistrationButton").on("click", function() {
+            resetToStep1();
+            showToast("Registration process canceled.", "warning");
+        });
+
+        // RESEND EMAIL OTP
+        $("#resendEmailOtp").on("click", function() {
+            if (!tempEmail) {
+                showToast("Email not available for resending OTP.", "error");
+                return;
+            }
+
+            // Disable the Resend Email OTP link during processing
+            disableElements("#resendEmailOtp");
+
+            showProcessing("resendEmailOtp", "resendEmailSpinner", "Resending...", "#resendEmailOtp");
+
+            grecaptcha.ready(function() {
+                grecaptcha.execute('6LdXX5gqAAAAAJWm-9E3rACC9HaZpUhtGNtAS_KP', {action: 'resend_email_otp'})
+                .then(function(token) {
+                    $.ajax({
+                        url: API_BASE_URL + "authuser/resend-email-otp/",
+                        method: "POST",
+                        xhrFields: { withCredentials: true },
+                        contentType: "application/json",
+                        data: JSON.stringify({
+                            email: tempEmail,
+                            google_recaptcha_v3_token: token
+                        }),
+                        success: function() {
+                            showToast("Email OTP has been resent.", "success");
+                        },
+                        error: function(xhr) {
+                            let msg = "Resend Email OTP failed.";
+                            if (xhr.responseJSON && xhr.responseJSON.detail) {
+                                msg = xhr.responseJSON.detail;
+                            }
+                            showToast(msg, "error");
+                        },
+                        complete: function() {
+                            hideProcessing("resendEmailOtp", "resendEmailSpinner", "Resend OTP", "#resendEmailOtp");
+                        }
+                    });
+                });
+            });
+        });
+
+        // RESEND MOBILE OTP
+        $("#resendMobileOtp").on("click", function() {
+            if (!tempMobile) {
+                showToast("Mobile number not available for resending OTP.", "error");
+                return;
+            }
+
+            // Disable the Resend Mobile OTP link during processing
+            disableElements("#resendMobileOtp");
+
+            showProcessing("resendMobileOtp", "resendMobileSpinner", "Resending...", "#resendMobileOtp");
+
+            grecaptcha.ready(function() {
+                grecaptcha.execute('6LdXX5gqAAAAAJWm-9E3rACC9HaZpUhtGNtAS_KP', {action: 'resend_mobile_otp'})
+                .then(function(token) {
+                    $.ajax({
+                        url: API_BASE_URL + "authuser/resend-mobile-otp/",
+                        method: "POST",
+                        xhrFields: { withCredentials: true },
+                        contentType: "application/json",
+                        data: JSON.stringify({
+                            mobile: tempMobile,
+                            google_recaptcha_v3_token: token
+                        }),
+                        success: function() {
+                            showToast("Mobile OTP has been resent.", "success");
+                        },
+                        error: function(xhr) {
+                            let msg = "Resend Mobile OTP failed.";
+                            if (xhr.responseJSON && xhr.responseJSON.detail) {
+                                msg = xhr.responseJSON.detail;
+                            }
+                            showToast(msg, "error");
+                        },
+                        complete: function() {
+                            hideProcessing("resendMobileOtp", "resendMobileSpinner", "Resend OTP", "#resendMobileOtp");
+                        }
+                    });
+                });
+            });
+        });
+
+    });
+</script>
+{% endblock extra_script %}

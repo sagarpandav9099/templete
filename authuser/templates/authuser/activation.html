@@ -1,0 +1,443 @@
+<!-- authuser/templates/authuser/activation.html -->
+{% extends "authuser/base.html" %}
+{% load static %}
+
+{% block title %}Activation{% endblock title %}
+
+{% block extra_head %}
+<style>
+    /* Reuse the same disabled style as in login.html */
+    input[disabled],
+    button[disabled],
+    textarea[disabled],
+    select[disabled] {
+        opacity: 0.6; /* Optional: Add a dimming effect */
+        pointer-events: none; /* Prevent interaction */
+        cursor: not-allowed; /* Show a disabled cursor */
+    }
+    /* Additional styling for Resend OTP links */
+    .resend-otp {
+        cursor: pointer;
+        color: #0d6efd;
+        text-decoration: underline;
+        font-size: 0.9rem;
+    }
+    .resend-otp:hover {
+        color: #0a58ca;
+    }
+    /* Positioning spinner within Resend OTP */
+    .resend-otp .spinner {
+        margin-left: 5px;
+    }
+</style>
+{% endblock extra_head %}
+
+{% block content %}
+<div class="rbt-elements-area bg-color-white mt--30">
+    <div class="container h-100 d-flex align-items-center justify-content-center">
+        <div class="row gy-5 row--30 w-100 justify-content-center">
+            <div class="col-lg-6">
+                <div class="rbt-contact-form contact-form-style-1 max-width-auto">
+                    
+                    <!-- Heading -->
+                    <h4>User Activation</h4>
+
+                    <!-- Alert / Toast placeholder (optional) -->
+                    <div id="alert-message"></div>
+
+                    <!-- Main Form -->
+                    <form class="max-width-auto rbt-default-form" id="activationForm" novalidate>
+
+                        <!-- STEP 1: Request OTP (Email & Mobile) -->
+                        <div id="step1">
+                            <div class="rbt-form-group">
+                                <label for="email" class="form-label">Email *</label>
+                                <input type="email" class="form-control" id="email" required>
+                                <div class="validation-error" id="emailError"></div>
+                            </div>
+
+                            <div class="rbt-form-group">
+                                <label for="mobile" class="form-label">Mobile *</label>
+                                <input type="text" class="form-control" id="mobile" required>
+                                <div class="validation-error" id="mobileError"></div>
+                            </div>
+
+                            <div class="form-submit-group mt-3">
+                                <button type="button" class="rbt-btn btn-md btn-gradient hover-icon-reverse w-100" id="requestOtpButton">
+                                    <span id="activationButtonText">Send OTP</span>
+                                    <i class="fa-solid fa-spinner fa-spin d-none" id="activationSpinner"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- /STEP 1 -->
+
+                        <!-- STEP 2: Verify OTP & Activate Account -->
+                        <div id="step2" class="d-none mt-4">
+                            <div class="rbt-form-group">
+                                <label for="email_otp" class="form-label">
+                                    Email OTP *
+                                    <span class="resend-otp" id="resendEmailOtp">
+                                        Resend OTP
+                                        <i class="fa-solid fa-spinner fa-spin d-none spinner" id="resendEmailSpinner"></i>
+                                    </span>
+                                </label>
+                                <input type="text" class="form-control" id="email_otp" required>
+                                <div class="validation-error" id="emailOtpError"></div>
+                            </div>
+
+                            <div class="rbt-form-group">
+                                <label for="mobile_otp" class="form-label">
+                                    Mobile OTP *
+                                    <span class="resend-otp" id="resendMobileOtp">
+                                        Resend OTP
+                                        <i class="fa-solid fa-spinner fa-spin d-none spinner" id="resendMobileSpinner"></i>
+                                    </span>
+                                </label>
+                                <input type="text" class="form-control" id="mobile_otp" required>
+                                <div class="validation-error" id="mobileOtpError"></div>
+                            </div>
+
+                            <div class="form-submit-group mt-3 d-flex justify-content-between">
+                                <button type="button" class="rbt-btn btn-md btn-secondary hover-icon-reverse" id="cancelActivationButton">
+                                    Cancel
+                                </button>
+                                <button type="button" class="rbt-btn btn-md btn-gradient hover-icon-reverse" id="activateAccountButton">
+                                    <span id="activateButtonText">Activate</span>
+                                    <i class="fa-solid fa-spinner fa-spin d-none" id="activateSpinner"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- /STEP 2 -->
+
+                    </form>
+                    <!-- /Main Form -->
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_script %}
+<script>
+    // Variables to store Email and Mobile after Step 1
+    let tempEmail = null;
+    let tempMobile = null;
+
+    // (Optional) Initialize Bootstrap Toast if you have a toastMessage in base.html
+    const toastEl = document.getElementById('toastMessage');
+    const toast = toastEl ? new bootstrap.Toast(toastEl) : null;
+
+    // Helper: Show Toast
+    function showToast(message, type = 'info') {
+        if (!toast) return; // if no toast in base
+        let iconClass = 'fa-circle-info';
+        let bgClass = 'bg-primary';
+        let textClass = '';
+
+        if (type === 'success') {
+            iconClass = 'fa-circle-check';
+            bgClass = 'bg-success';
+            textClass = 'text-white';
+        } else if (type === 'error') {
+            iconClass = 'fa-circle-xmark';
+            bgClass = 'bg-danger';
+            textClass = 'text-white';
+        } else if (type === 'warning') {
+            iconClass = 'fa-triangle-exclamation';
+            bgClass = 'bg-warning';
+        }
+
+        $('#toastMessage').removeClass().addClass(`toast align-items-center ${bgClass} border-0 ${textClass}`);
+        $('#toastContent').html(`<i class="fa-solid ${iconClass} me-2"></i>${message}`);
+        toast.show();
+    }
+
+    // Disable/Enable Specific Elements During Processing
+    function disableElements(selector) {
+        $(selector).prop('disabled', true);
+    }
+
+    function enableElements(selector) {
+        $(selector).prop('disabled', false);
+    }
+
+    // Show Spinner and Disable Specific Elements
+    function showProcessing(buttonTextId, spinnerId, newText = 'Processing...', elementsToDisable = null) {
+        $(`#${buttonTextId}`).text(newText);
+        $(`#${spinnerId}`).removeClass('d-none');
+        if (elementsToDisable) {
+            disableElements(elementsToDisable);
+        }
+    }
+
+    // Hide Spinner and Enable Specific Elements
+    function hideProcessing(buttonTextId, spinnerId, originalText = 'Submit', elementsToEnable = null) {
+        $(`#${buttonTextId}`).text(originalText);
+        $(`#${spinnerId}`).addClass('d-none');
+        if (elementsToEnable) {
+            enableElements(elementsToEnable);
+        }
+    }
+
+    // Helper: Extract Error Message from AJAX Response
+    function getErrorMessage(xhr) {
+        if (xhr.responseJSON) {
+            if (typeof xhr.responseJSON.detail === 'string') {
+                return xhr.responseJSON.detail;
+            } else if (typeof xhr.responseJSON.detail === 'object') {
+                if (xhr.responseJSON.detail.non_field_errors && xhr.responseJSON.detail.non_field_errors.length > 0) {
+                    return xhr.responseJSON.detail.non_field_errors[0];
+                }
+                // Handle field-specific errors if needed
+                for (let key in xhr.responseJSON.detail) {
+                    if (Array.isArray(xhr.responseJSON.detail[key]) && xhr.responseJSON.detail[key].length > 0) {
+                        return xhr.responseJSON.detail[key][0];
+                    }
+                }
+            }
+        }
+        return "An error occurred.";
+    }
+
+    // Client-side Validation for Step 1 (Email & Mobile)
+    function validateStep1() {
+        let isValid = true;
+        $("#emailError").text('');
+        $("#mobileError").text('');
+
+        const email = $("#email").val().trim();
+        const mobile = $("#mobile").val().trim();
+
+        // Simple Email Regex
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            $("#emailError").text("Please enter a valid email address.");
+            isValid = false;
+        }
+
+        // Mobile Regex Example: 10-15 digits
+        const mobileRegex = /^\d{10,15}$/;
+        if (!mobileRegex.test(mobile)) {
+            $("#mobileError").text("Please enter a valid mobile number (10-15 digits).");
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    // Client-side Validation for Step 2 (OTP)
+    function validateStep2() {
+        let isValid = true;
+        $("#emailOtpError").text('');
+        $("#mobileOtpError").text('');
+
+        const emailOtp = $("#email_otp").val().trim();
+        const mobileOtp = $("#mobile_otp").val().trim();
+
+        // OTP Regex Example: 4-6 digits
+        const otpRegex = /^\d{4,6}$/;
+        if (!otpRegex.test(emailOtp)) {
+            $("#emailOtpError").text("Please enter a valid Email OTP (4-6 digits).");
+            isValid = false;
+        }
+        if (!otpRegex.test(mobileOtp)) {
+            $("#mobileOtpError").text("Please enter a valid Mobile OTP (4-6 digits).");
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    // Function to reset the form to Step 1
+    function resetToStep1() {
+        // Clear all input fields and error messages
+        $('#activationForm')[0].reset();
+        $('.validation-error').text('');
+        // Hide Step 2 and show Step 1
+        $("#step2").addClass("d-none");
+        $("#step1").removeClass("d-none");
+        // Clear stored email and mobile
+        tempEmail = null;
+        tempMobile = null;
+    }
+
+    $(document).ready(function(){
+
+        // STEP 1: Request OTP
+        $("#requestOtpButton").on("click", function() {
+            if (!validateStep1()) return;
+
+            showProcessing("activationButtonText", "activationSpinner", "Sending OTP...", "#requestOtpButton");
+
+            const email = $("#email").val().trim();
+            const mobile = $("#mobile").val().trim();
+
+            // Store these for step 2
+            tempEmail = email;
+            tempMobile = mobile;
+
+            // reCAPTCHA for Step 1
+            grecaptcha.ready(function() {
+                grecaptcha.execute('6LdXX5gqAAAAAJWm-9E3rACC9HaZpUhtGNtAS_KP', {action: 'activate'})
+                .then(function(token) {
+                    $.ajax({
+                        url: API_BASE_URL + "authuser/verify_user/",
+                        method: "POST",
+                        xhrFields: { withCredentials: true },
+                        contentType: "application/json",
+                        data: JSON.stringify({
+                            email: email,
+                            mobile: mobile,
+                            google_recaptcha_v3_token: token
+                        }),
+                        success: function() {
+                            showToast("Activation OTP sent. Please verify.", "success");
+                            // Hide Step1, Show Step2
+                            $("#step1").addClass("d-none");
+                            $("#step2").removeClass("d-none");
+                        },
+                        error: function(xhr) {
+                            let msg = getErrorMessage(xhr);
+                            showToast(msg, "error");
+                        },
+                        complete: function() {
+                            hideProcessing("activationButtonText", "activationSpinner", "Send OTP", "#requestOtpButton");
+                        }
+                    });
+                });
+            });
+        });
+
+        // STEP 2: Activate Account
+        $("#activateAccountButton").on("click", function() {
+            if (!validateStep2()) return;
+
+            showProcessing("activateButtonText", "activateSpinner", "Activating...", "#activateAccountButton");
+
+            const email_otp = $("#email_otp").val().trim();
+            const mobile_otp = $("#mobile_otp").val().trim();
+
+            // reCAPTCHA for Step 2
+            grecaptcha.ready(function() {
+                grecaptcha.execute('6LdXX5gqAAAAAJWm-9E3rACC9HaZpUhtGNtAS_KP', {action: 'verify'})
+                .then(function(token) {
+                    $.ajax({
+                        url: API_BASE_URL + "authuser/verify/",
+                        method: "POST",
+                        xhrFields: { withCredentials: true },
+                        contentType: "application/json",
+                        data: JSON.stringify({
+                            email: tempEmail,
+                            mobile: tempMobile,
+                            email_otp: email_otp,
+                            mobile_otp: mobile_otp,
+                            google_recaptcha_v3_token: token
+                        }),
+                        success: function() {
+                            showToast("Account activated successfully. You can log in now.", "success");
+                            // Redirect to login after success
+                            setTimeout(function() {
+                                window.location.href = "{% url 'login' %}";
+                            }, 2000);
+                        },
+                        error: function(xhr) {
+                            let msg = getErrorMessage(xhr);
+                            showToast(msg, "error");
+                        },
+                        complete: function() {
+                            hideProcessing("activateButtonText", "activateSpinner", "Activate", "#activateAccountButton");
+                        }
+                    });
+                });
+            });
+        });
+
+        // CANCEL ACTIVATION OPERATION
+        $("#cancelActivationButton").on("click", function() {
+            resetToStep1();
+            showToast("Activation process canceled.", "warning");
+        });
+
+        // RESEND EMAIL OTP
+        $("#resendEmailOtp").on("click", function() {
+            if (!tempEmail) {
+                showToast("Email not available for resending OTP.", "error");
+                return;
+            }
+
+            // Disable the Resend Email OTP link during processing
+            disableElements("#resendEmailOtp");
+
+            showProcessing("resendEmailOtp", "resendEmailSpinner", "Resending...", "#resendEmailOtp");
+
+            grecaptcha.ready(function() {
+                grecaptcha.execute('6LdXX5gqAAAAAJWm-9E3rACC9HaZpUhtGNtAS_KP', {action: 'resend_email_otp'})
+                .then(function(token) {
+                    $.ajax({
+                        url: API_BASE_URL + "authuser/resend-email-otp/",
+                        method: "POST",
+                        xhrFields: { withCredentials: true },
+                        contentType: "application/json",
+                        data: JSON.stringify({
+                            email: tempEmail,
+                            google_recaptcha_v3_token: token
+                        }),
+                        success: function() {
+                            showToast("Email OTP has been resent.", "success");
+                        },
+                        error: function(xhr) {
+                            let msg = getErrorMessage(xhr);
+                            showToast(msg, "error");
+                        },
+                        complete: function() {
+                            hideProcessing("resendEmailOtp", "resendEmailSpinner", "Resend OTP", "#resendEmailOtp");
+                        }
+                    });
+                });
+            });
+        });
+
+        // RESEND MOBILE OTP
+        $("#resendMobileOtp").on("click", function() {
+            if (!tempMobile) {
+                showToast("Mobile number not available for resending OTP.", "error");
+                return;
+            }
+
+            // Disable the Resend Mobile OTP link during processing
+            disableElements("#resendMobileOtp");
+
+            showProcessing("resendMobileOtp", "resendMobileSpinner", "Resending...", "#resendMobileOtp");
+
+            grecaptcha.ready(function() {
+                grecaptcha.execute('6LdXX5gqAAAAAJWm-9E3rACC9HaZpUhtGNtAS_KP', {action: 'resend_mobile_otp'})
+                .then(function(token) {
+                    $.ajax({
+                        url: API_BASE_URL + "authuser/resend-mobile-otp/",
+                        method: "POST",
+                        xhrFields: { withCredentials: true },
+                        contentType: "application/json",
+                        data: JSON.stringify({
+                            mobile: tempMobile,
+                            google_recaptcha_v3_token: token
+                        }),
+                        success: function() {
+                            showToast("Mobile OTP has been resent.", "success");
+                        },
+                        error: function(xhr) {
+                            let msg = getErrorMessage(xhr);
+                            showToast(msg, "error");
+                        },
+                        complete: function() {
+                            hideProcessing("resendMobileOtp", "resendMobileSpinner", "Resend OTP", "#resendMobileOtp");
+                        }
+                    });
+                });
+            });
+        });
+
+    });
+</script>
+{% endblock extra_script %}

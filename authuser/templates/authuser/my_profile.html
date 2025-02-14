@@ -1,0 +1,214 @@
+<!-- authuser/templates/authuser/login.html -->
+{% extends "authuser/dashboard_base.html" %} {% load static %} {% block title
+%}{% endblock title %} {% block dashboard_content %}
+
+<div class="col-lg-9">
+  <!-- Start Instructor Profile  -->
+  <div class="rbt-dashboard-content bg-color-white rbt-shadow-box">
+    <div class="content">
+      <div class="section-title">
+        <h4 class="rbt-title-style-3">My Profile</h4>
+      </div>
+      <!-- Start Profile Row  -->
+      <div class="rbt-profile-row row row--15">
+        <div class="col-lg-4 col-md-4">
+          <div class="rbt-profile-content b2">Birth Date</div>
+        </div>
+        <div class="col-lg-8 col-md-8">
+          <div class="rbt-profile-content b2" id="birthDateView"></div>
+        </div>
+      </div>
+      <!-- End Profile Row  -->
+      <!-- Start Profile Row  -->
+      <div class="rbt-profile-row row row--15">
+        <div class="col-lg-4 col-md-4">
+          <div class="rbt-profile-content b2">Gender</div>
+        </div>
+        <div class="col-lg-8 col-md-8">
+          <div class="rbt-profile-content b2" id="genderView"></div>
+        </div>
+      </div>
+      <!-- End Profile Row  -->
+      <!-- Start Profile Row  -->
+      <div class="rbt-profile-row row row--15">
+        <div class="col-lg-4 col-md-4">
+          <div class="rbt-profile-content b2">Nationality</div>
+        </div>
+        <div class="col-lg-8 col-md-8">
+          <div class="rbt-profile-content b2" id="nationalityView"></div>
+        </div>
+      </div>
+      <!-- End Profile Row  -->
+      <!-- Start Profile Row  -->
+      <div class="rbt-profile-row row row--15">
+        <div class="col-lg-4 col-md-4">
+          <div class="rbt-profile-content b2">Country</div>
+        </div>
+        <div class="col-lg-8 col-md-8">
+          <div class="rbt-profile-content b2" id="countryView"></div>
+        </div>
+      </div>
+      <!-- End Profile Row  -->
+      <!-- Start Profile Row  -->
+      <div class="rbt-profile-row row row--15">
+        <div class="col-lg-4 col-md-4">
+          <div class="rbt-profile-content b2">State</div>
+        </div>
+        <div class="col-lg-8 col-md-8">
+          <div class="rbt-profile-content b2" id="stateView"></div>
+        </div>
+      </div>
+      <!-- End Profile Row  -->
+      <!-- Start Profile Row  -->
+      <div class="rbt-profile-row row row--15">
+        <div class="col-lg-4 col-md-4">
+          <div class="rbt-profile-content b2">City</div>
+        </div>
+        <div class="col-lg-8 col-md-8">
+          <div class="rbt-profile-content b2" id="cityView"></div>
+        </div>
+      </div>
+      <!-- End Profile Row  -->
+      <!-- Start Profile Row  -->
+      <div class="rbt-profile-row row row--15">
+        <div class="col-lg-4 col-md-4">
+          <div class="rbt-profile-content b2">Postal Code</div>
+        </div>
+        <div class="col-lg-8 col-md-8">
+          <div class="rbt-profile-content b2" id="postalCodeView"></div>
+        </div>
+      </div>
+      <!-- End Profile Row  -->
+      <!-- Start Profile Row  -->
+      <div class="rbt-profile-row row row--15">
+        <div class="col-lg-4 col-md-4">
+          <div class="rbt-profile-content b2">Address</div>
+        </div>
+        <div class="col-lg-8 col-md-8">
+          <div class="rbt-profile-content b2" id="addressView"></div>
+        </div>
+      </div>
+      <!-- End Profile Row  -->
+    </div>
+  </div>
+  <!-- End Instructor Profile  -->
+</div>
+
+{% endblock dashboard_content %} {% block extra_script %}
+<script>
+  // Initialize Bootstrap Toast
+  const toastEl = document.getElementById("toastMessage");
+  const toast = new bootstrap.Toast(toastEl);
+
+  // Show Toast Function
+  function showToast(message, type = "info") {
+    let iconClass = "fa-circle-info";
+    let bgClass = "bg-primary";
+    let textClass = "";
+    let messageClass = "";
+
+    if (type === "success") {
+      iconClass = "fa-circle-check";
+      bgClass = "bg-success";
+      textClass = "text-white";
+    } else if (type === "error") {
+      iconClass = "fa-circle-xmark";
+      bgClass = "bg-danger";
+      textClass = "text-white";
+    } else if (type === "warning") {
+      iconClass = "fa-triangle-exclamation";
+      bgClass = "bg-warning";
+    }
+
+    $("#toastMessage")
+      .removeClass()
+      .addClass(`toast align-items-center ${bgClass} border-0 ${textClass}`);
+    $("#toastContent").html(
+      `<i class="fa-solid ${iconClass}"></i><span class="${messageClass}">${message}</span>`
+    );
+    $("#toastMessage").css({
+      "min-width": "450px",
+      "font-size": "16px",
+    });
+    toast.show();
+  }
+
+  // Function to Load Country Name and Set Read-only Field
+  function loadCountryName(countryId, callback) {
+    $.ajax({
+      url: API_BASE_URL + "master/countries/" + countryId + "/",
+      method: "GET",
+      success: function (data) {
+        if (callback) callback(data);
+      },
+      error: function () {
+        console.error("Failed to load country name.");
+        $("#countryView").text("Unknown Country");
+      },
+    });
+  }
+
+  function loadStateName(stateId, callback) {
+    $.ajax({
+      url: API_BASE_URL + "master/states/" + stateId + "/",
+      method: "GET",
+      success: function (data) {
+        if (callback) callback(data);
+      },
+      error: function () {
+        console.error("Failed to load state name.");
+        $("#stateView").text("Unknown State");
+      },
+    });
+  }
+
+  function loadCityName(cityId, callback) {
+    $.ajax({
+      url: API_BASE_URL + "master/cities/" + cityId + "/",
+      method: "GET",
+      success: function (data) {
+        if (callback) callback(data);
+      },
+      error: function () {
+        console.error("Failed to load city name.");
+        $("#cityView").text("Unknown City");
+      },
+    });
+  }
+  $(document).ready(function () {
+    // 1) Check if user is logged in (load profile)
+    $.ajax({
+      url: API_BASE_URL + "authuser/profile/",
+      method: "GET",
+      xhrFields: { withCredentials: true },
+      success: function (profile) {
+        $("#birthDateView").text(profile.birth_date);
+        $("#genderView").text(profile.gender);
+        $("#nationalityView").text(profile.nationality);
+        $("#addressView").text(profile.address);
+
+        $("#postalCodeView").text(profile.postal_code);
+        loadCountryName(profile.country, function (country) {
+          $("#countryView").text(country.name);
+        });
+
+        if (profile.state) {
+          loadStateName(profile.state, function (state) {
+            $("#stateView").text(state.name);
+          });
+        }
+        if (profile.city) {
+          loadCityName(profile.city, function (city) {
+            $("#cityView").text(city.name);
+          });
+        }
+      },
+      error: function (xhr, status, error) {
+        // Not logged in
+        console.error("Failed to load profile:", xhr, status, error);
+        window.location.href = "/login/";
+      },
+    });
+  });
+</script>
+{% endblock %}
